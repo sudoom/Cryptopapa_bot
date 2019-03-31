@@ -568,40 +568,44 @@ def blockchain_status_ETH(bot, update):
 
 def add_addr_ETH(bot, update):
     text = update.message.text
+    l_text = text.lower()
     usr_id = update.message.from_user.id
+    addr = get_addr_eth(usr_id)
+    l_addr = []
+    for all_addr in addr:
+        l_addr.append(all_addr.lower())
     link = "https://api.blockchair.com/ethereum/dashboards/address/"
     get_addr = requests.get(link+text)
     to_json = get_addr.json()
-    if type(to_json["data"][text]["address"]["type"]) != str:
+    if type(to_json["data"][l_text]["address"]["type"]) != str:
         bot.send_message(
             chat_id=update.message.chat_id,
             text="You write wrong address, please check it",
             reply_markup=sub_eth_addr_keyboard()
         )
-    else:
-        if not find_addr_eth(text, usr_id):
-            edit_user = mongo_coll.update_one(
-                {
-                    "user_id": usr_id
-                },
-                {
-                    '$addToSet': {
-                        "wallets.eth": text
-                    }
+    elif l_text in l_addr:
+        bot.send_message(
+            chat_id=update.message.chat_id,
+            text="This Address has been already added earlier",
+            reply_markup=sub_eth_addr_keyboard()
+        )
+    elif not find_addr_eth(text, usr_id):
+        edit_user = mongo_coll.update_one(
+            {
+                "user_id": usr_id
+            },
+            {
+                '$addToSet': {
+                    "wallets.eth": text
                 }
-            )
-            bot.send_message(
-                chat_id=update.message.chat_id,
-                text=f"Address <code>{text}</code> succesfully update",
-                parse_mode=telegram.ParseMode.HTML,
-                reply_markup=sub_eth_addr_keyboard()
-            )
-        else:
-            bot.send_message(
-                chat_id=update.message.chat_id,
-                text="This Address has been already added earlier",
-                reply_markup=sub_eth_addr_keyboard()
-            )
+            }
+        )
+        bot.send_message(
+            chat_id=update.message.chat_id,
+            text=f"Address <code>{text}</code> succesfully update",
+            parse_mode=telegram.ParseMode.HTML,
+            reply_markup=sub_eth_addr_keyboard()
+        )
 
 
 def check_addr_ETH(bot, update):
@@ -636,7 +640,7 @@ def check_addr_ETH(bot, update):
 
 def print_addr_ETH(bot, update):
     query = update.callback_query
-    addr = query.data[10:]
+    addr = query.data[10:].lower()
     link = "https://api.blockchair.com/ethereum/dashboards/address/"
     get_addr = requests.get(link+addr)
     to_json = get_addr.json()
@@ -781,7 +785,8 @@ def check_transaction_ETH(bot, update):
 ############################### ETH HANDLER ###############################
 ########################## MESSAGE HANDLERS ##########################
 ud.add_handler(MessageHandler(Filters.regex('^0x[0-9a-z]{64}$'), tran_ETH))
-ud.add_handler(MessageHandler(Filters.regex('^0x[0-9a-z]{40}$'), add_addr_ETH))
+ud.add_handler(MessageHandler(Filters.regex(
+    '^0x[0-9A-Fa-f]{40}$'), add_addr_ETH))
 
 
 ########################## KEYBOARD HANDLERS ##########################
